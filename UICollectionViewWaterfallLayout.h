@@ -13,6 +13,8 @@
 - (CGFloat)collectionView:(PSTCollectionView *)collectionView
                    layout:(UICollectionViewWaterfallLayout *)collectionViewLayout
  heightForItemAtIndexPath:(NSIndexPath *)indexPath;
+- (CGFloat)heightOfHeaderCollectionView:(PSTCollectionView *)collectionView
+                                 layout:(UICollectionViewWaterfallLayout *)collectionViewLayout;
 @end
 
 @interface UICollectionViewWaterfallLayout : PSTCollectionViewLayout

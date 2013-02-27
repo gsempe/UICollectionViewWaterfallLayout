@@ -12,6 +12,7 @@
 @property (nonatomic, assign) CGFloat interitemSpacing;
 @property (nonatomic, strong) NSMutableArray *columnHeights; // height for each column
 @property (nonatomic, strong) NSMutableArray *itemAttributes; // attributes for each item
+@property (nonatomic, assign) CGRect headerRect;
 @end
 
 @implementation UICollectionViewWaterfallLayout
@@ -79,10 +80,14 @@
     CGFloat width = self.collectionView.frame.size.width - _sectionInset.left - _sectionInset.right;
     _interitemSpacing = floorf((width - _columnCount * _itemWidth) / (_columnCount - 1));
 
+    {
+        CGFloat headerHeight = [self.delegate heightOfHeaderCollectionView:self.collectionView layout:self];
+        self.headerRect = CGRectMake(0, 0, self.collectionView.frame.size.width, headerHeight);
+    }
     _itemAttributes = [NSMutableArray arrayWithCapacity:_itemCount];
     _columnHeights = [NSMutableArray arrayWithCapacity:_columnCount];
     for (NSInteger idx = 0; idx < _columnCount; idx++) {
-        [_columnHeights addObject:@(_sectionInset.top)];
+        [_columnHeights addObject:@(_sectionInset.top + self.headerRect.size.height)];
     }
 
     // Item will be put into shortest column.
@@ -121,11 +126,27 @@
     return (self.itemAttributes)[path.item];
 }
 
+- (PSTCollectionViewLayoutAttributes *)layoutAttributesForSupplementaryViewOfKind:(NSString *)kind atIndexPath:(NSIndexPath *)indexPath
+{
+    PSTCollectionViewLayoutAttributes *headerAttributes = [PSTCollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:kind withIndexPath:indexPath];
+    headerAttributes.frame = self.headerRect;
+    return headerAttributes;
+}
+
 - (NSArray *)layoutAttributesForElementsInRect:(CGRect)rect
 {
-    return [self.itemAttributes filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(PSTCollectionViewLayoutAttributes *evaluatedObject, NSDictionary *bindings) {
+    NSArray *elementArray;
+    NSArray *itemArray = [self.itemAttributes filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(PSTCollectionViewLayoutAttributes *evaluatedObject, NSDictionary *bindings) {
         return CGRectIntersectsRect(rect, [evaluatedObject frame]);
     }]];
+    if (YES==CGRectIntersectsRect(rect, self.headerRect)) {
+        NSMutableArray *tempArray = [NSMutableArray arrayWithObject:[self layoutAttributesForSupplementaryViewOfKind:nil atIndexPath:[NSIndexPath indexPathForItem:0 inSection:0]]];
+        [tempArray addObjectsFromArray:itemArray];
+        elementArray = [NSArray arrayWithArray:tempArray];
+    } else {
+        elementArray = itemArray;
+    }
+    return elementArray;
 }
 
 - (BOOL)shouldInvalidateLayoutForBoundsChange:(CGRect)newBounds
